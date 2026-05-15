@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          LDFLAGS="-s -w -X main.version=$VERSION"
+          
+          mkdir -p dist
+          
+          # Darwin
+          GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/nzbgrab-darwin-amd64 ./cmd/nzbgrab
+          GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/nzbgrab-darwin-arm64 ./cmd/nzbgrab
+          
+          # Linux
+          GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/nzbgrab-linux-amd64 ./cmd/nzbgrab
+          GOOS=linux GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/nzbgrab-linux-arm64 ./cmd/nzbgrab
+          
+          # Windows
+          GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/nzbgrab-windows-amd64.exe ./cmd/nzbgrab
+          
+          # Checksums
+          cd dist && sha256sum * > SHA256SUMS
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          generate_release_notes: true

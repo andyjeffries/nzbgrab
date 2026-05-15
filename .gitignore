@@ -1,1 +1,33 @@
+# Binaries
 nzbgrab
+*.exe
+
+# Build output
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+*.nzb
+*.mkv
+*.mp4
+*.avi
+*.rar
+*.zip
+*.7z
+*.par2
+*.epub
+*.mobi
+*.azw3
+*.nfo
+*.diz
+
+# But keep testdata
+!testdata/
