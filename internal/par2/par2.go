@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -43,8 +42,8 @@ func Available() bool {
 func runWithTimeout(ctx context.Context, dir string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	cmd.Dir = dir
-	// Set process group so we can kill all children
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// Set process group so we can kill all children (Unix only)
+	setPgid(cmd)
 
 	// Capture output
 	var output bytes.Buffer
@@ -67,9 +66,7 @@ func runWithTimeout(ctx context.Context, dir string, args ...string) ([]byte, er
 		return output.Bytes(), err
 	case <-ctx.Done():
 		// Kill the entire process group
-		if cmd.Process != nil {
-			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		}
+		killProcessGroup(cmd)
 		<-done // Wait for process to exit
 		return output.Bytes(), ctx.Err()
 	}
