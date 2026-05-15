@@ -4,26 +4,54 @@ import (
 	"testing"
 )
 
-func TestParse(t *testing.T) {
-	nzb, err := Parse("../../testdata/small1.nzb")
+// Sample NZB XML for testing
+const testNZB = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.1//EN" "http://www.newzbin.com/DTD/nzb/nzb-1.1.dtd">
+<nzb xmlns="http://www.newzbin.com/DTD/2003/nzb">
+  <head>
+    <meta type="name">Test.Release.2024</meta>
+  </head>
+  <file poster="test@example.com" date="1234567890" subject="[1/3] - &quot;test.vol00+01.par2&quot; yEnc (1/1)">
+    <groups><group>alt.binaries.test</group></groups>
+    <segments>
+      <segment bytes="50000" number="1">abc123@example.com</segment>
+    </segments>
+  </file>
+  <file poster="test@example.com" date="1234567890" subject="[2/3] - &quot;test.rar&quot; yEnc (1/2)">
+    <groups><group>alt.binaries.test</group></groups>
+    <segments>
+      <segment bytes="768000" number="1">def456@example.com</segment>
+      <segment bytes="768000" number="2">ghi789@example.com</segment>
+    </segments>
+  </file>
+  <file poster="test@example.com" date="1234567890" subject="[3/3] - &quot;test.mkv&quot; yEnc (1/1)">
+    <groups><group>alt.binaries.test</group></groups>
+    <segments>
+      <segment bytes="1000000" number="1">jkl012@example.com</segment>
+    </segments>
+  </file>
+</nzb>`
+
+func TestParseBytes(t *testing.T) {
+	nzb, err := ParseBytes([]byte(testNZB), "test.nzb")
 	if err != nil {
-		t.Fatalf("Parse() error: %v", err)
+		t.Fatalf("ParseBytes() error: %v", err)
 	}
 
-	if nzb.Name != "Hazel.Henry.Sparks.Fly.2026.RETAiL.EPUB" {
-		t.Errorf("Name = %q, want %q", nzb.Name, "Hazel.Henry.Sparks.Fly.2026.RETAiL.EPUB")
+	if nzb.Name != "Test.Release.2024" {
+		t.Errorf("Name = %q, want %q", nzb.Name, "Test.Release.2024")
 	}
 
-	if len(nzb.Files) != 8 {
-		t.Errorf("len(Files) = %d, want 8", len(nzb.Files))
+	if len(nzb.Files) != 3 {
+		t.Errorf("len(Files) = %d, want 3", len(nzb.Files))
 	}
 
 	// Check total bytes
 	total := nzb.TotalBytes()
-	if total == 0 {
-		t.Error("TotalBytes() = 0, want > 0")
+	expected := int64(50000 + 768000 + 768000 + 1000000)
+	if total != expected {
+		t.Errorf("TotalBytes() = %d, want %d", total, expected)
 	}
-	t.Logf("Total bytes: %d", total)
 
 	// Check file parsing
 	var parCount, archiveCount int
@@ -37,15 +65,13 @@ func TestParse(t *testing.T) {
 		if f.IsArchive() {
 			archiveCount++
 		}
-		t.Logf("File: %s (%d bytes, %d segments, par2=%v, archive=%v)",
-			f.Filename, f.Bytes, len(f.Segments), f.IsPar2(), f.IsArchive())
 	}
 
-	if parCount == 0 {
-		t.Error("No PAR2 files detected")
+	if parCount != 1 {
+		t.Errorf("PAR2 count = %d, want 1", parCount)
 	}
-	if archiveCount == 0 {
-		t.Error("No archive files detected")
+	if archiveCount != 1 {
+		t.Errorf("Archive count = %d, want 1", archiveCount)
 	}
 }
 
