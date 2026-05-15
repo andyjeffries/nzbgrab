@@ -43,9 +43,36 @@ jobs:
           
           # Windows
           GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/nzbgrab-windows-amd64.exe ./cmd/nzbgrab
+
+      - name: Build .deb package
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
           
-          # Checksums
-          cd dist && sha256sum * > SHA256SUMS
+          mkdir -p dist/deb/nzbgrab_${VERSION}_amd64/DEBIAN
+          mkdir -p dist/deb/nzbgrab_${VERSION}_amd64/usr/bin
+          mkdir -p dist/deb/nzbgrab_${VERSION}_amd64/usr/share/doc/nzbgrab
+          
+          cp dist/nzbgrab-linux-amd64 dist/deb/nzbgrab_${VERSION}_amd64/usr/bin/nzbgrab
+          cp README.md dist/deb/nzbgrab_${VERSION}_amd64/usr/share/doc/nzbgrab/
+          cp LICENSE dist/deb/nzbgrab_${VERSION}_amd64/usr/share/doc/nzbgrab/copyright
+          
+          cat > dist/deb/nzbgrab_${VERSION}_amd64/DEBIAN/control << EOF
+          Package: nzbgrab
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: Andy Jeffries <andy@andyjeffries.co.uk>
+          Description: Fast parallel NZB downloader
+           A fast, parallel NZB downloader for Usenet with automatic
+           PAR2 verification, archive extraction, and file deobfuscation.
+          Recommends: par2, unrar, p7zip-full, unzip
+          Homepage: https://github.com/andyjeffries/nzbgrab
+          EOF
+          
+          dpkg-deb --build dist/deb/nzbgrab_${VERSION}_amd64
+          mv dist/deb/nzbgrab_${VERSION}_amd64.deb dist/
+
+      - name: Generate checksums
+        run: cd dist && sha256sum nzbgrab-* *.deb > SHA256SUMS
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
