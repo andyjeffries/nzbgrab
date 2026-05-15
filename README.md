@@ -14,14 +14,36 @@ A fast, parallel NZB downloader for Usenet with automatic PAR2 verification, arc
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew install andyjeffries/tap/nzbgrab
+```
+
+### Arch Linux (AUR)
+
+```bash
+yay -S nzbgrab
+```
+
+### Ubuntu/Debian
+
+Download the `.deb` from [GitHub Releases](https://github.com/andyjeffries/nzbgrab/releases):
+
+```bash
+curl -LO https://github.com/andyjeffries/nzbgrab/releases/latest/download/nzbgrab_0.1.1_amd64.deb
+sudo dpkg -i nzbgrab_0.1.1_amd64.deb
+```
+
 ### Build from source
 
 Requires Go 1.21 or later.
 
 ```bash
-git clone https://github.com/yourname/nzbgrab
+git clone https://github.com/andyjeffries/nzbgrab
 cd nzbgrab
-go build -o nzbgrab ./cmd/nzbgrab
+make build
+sudo make install
 ```
 
 ### External dependencies
@@ -41,6 +63,11 @@ pacman -S par2cmdline unrar p7zip unzip
 On Ubuntu/Debian:
 ```bash
 apt install par2 unrar p7zip-full unzip
+```
+
+On macOS:
+```bash
+brew install par2 unrar p7zip
 ```
 
 ## Configuration
@@ -123,6 +150,46 @@ Typical speeds with 10 connections on a good Usenet provider:
 
 - ~80-120 MB/s on fast connections
 - Parallel NZB downloads for efficient queue processing
+
+## Development
+
+### Building
+
+```bash
+make build      # Build for current platform
+make test       # Run tests
+make clean      # Remove build artifacts
+```
+
+### Releasing
+
+```bash
+# Bump version (choose one)
+make bump-patch   # 0.1.0 -> 0.1.1
+make bump-minor   # 0.1.0 -> 0.2.0
+make bump-major   # 0.1.0 -> 1.0.0
+
+# Create release (builds, tags, pushes, creates GitHub release)
+make release
+
+# Update package repositories
+make homebrew-bump   # Update Homebrew formula
+make aur-publish     # Update AUR package
+```
+
+### Package repository setup
+
+**Homebrew tap** (one-time):
+```bash
+# Clone your tap repo
+git clone git@github.com:andyjeffries/homebrew-tap.git ../homebrew-tap
+```
+
+**AUR** (one-time):
+```bash
+# Clone AUR repo (requires AUR account with SSH key)
+git clone ssh://aur@aur.archlinux.org/nzbgrab.git ../nzbgrab-aur
+```
 
 ## License
 
