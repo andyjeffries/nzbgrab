@@ -12,6 +12,9 @@ LDFLAGS := -s -w -X main.version=$(VERSION)
 GITHUB_USER := andyjeffries
 GITHUB_REPO := nzbgrab
 
+# Branch to push releases from (defaults to the current branch)
+MAIN_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo master)
+
 # Build output
 DIST_DIR := dist
 
@@ -106,7 +109,7 @@ release: test dist
 	git add version.txt
 	git commit -m "Release v$(VERSION)" || true
 	git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
-	git push origin main
+	git push origin $(MAIN_BRANCH)
 	git push origin "v$(VERSION)"
 	gh release create "v$(VERSION)" $(DIST_DIR)/* \
 		--title "v$(VERSION)" \
