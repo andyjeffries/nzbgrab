@@ -11,7 +11,6 @@ import (
 
 	"nzbgrab/internal/nntp"
 	"nzbgrab/internal/nzb"
-	"nzbgrab/internal/yenc"
 )
 
 // Progress tracks download progress.
@@ -126,19 +125,14 @@ func (w *Worker) downloadFile(ctx context.Context, dir string, file *nzb.File) e
 	return nil
 }
 
-// downloadSegment downloads and decodes a single segment.
+// downloadSegment downloads and decodes a single segment, retrying on
+// transient network errors.
 func (w *Worker) downloadSegment(ctx context.Context, segment *nzb.Segment) ([]byte, error) {
-	data, err := w.pool.FetchArticle(ctx, segment.MessageID)
+	data, _, err := fetchAndDecodeSegment(ctx, w.pool, segment)
 	if err != nil {
 		return nil, err
 	}
-
-	result, err := yenc.DecodeBytes(data)
-	if err != nil {
-		return nil, fmt.Errorf("yenc decode: %w", err)
-	}
-
-	return result.Data, nil
+	return data, nil
 }
 
 func (w *Worker) reportProgress() {
@@ -353,27 +347,23 @@ func (w *ParallelWorker) downloadFileParallel(ctx context.Context, dir string, f
 	return nil
 }
 
-// downloadSegment downloads and decodes a single segment.
+// downloadSegment downloads and decodes a single segment, retrying on
+// transient network errors.
 // Returns the decoded data and the filename from yEnc header (if present).
 func (w *ParallelWorker) downloadSegment(ctx context.Context, segment *nzb.Segment) ([]byte, string, error) {
-	data, err := w.pool.FetchArticle(ctx, segment.MessageID)
+	data, filename, err := fetchAndDecodeSegment(ctx, w.pool, segment)
 	if err != nil {
 		return nil, "", err
 	}
 
-	result, err := yenc.DecodeBytes(data)
-	if err != nil {
-		return nil, "", fmt.Errorf("yenc decode: %w", err)
-	}
-
 	// Apply rate limiting after receiving data
 	if w.rateLimiter != nil {
-		if err := w.rateLimiter.Wait(ctx, len(result.Data)); err != nil {
+		if err := w.rateLimiter.Wait(ctx, len(data)); err != nil {
 			return nil, "", err
 		}
 	}
 
-	return result.Data, result.Header.Name, nil
+	return data, filename, nil
 }
 
 func (w *ParallelWorker) reportProgress() {
